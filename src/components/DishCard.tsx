@@ -1,57 +1,136 @@
-import React from 'react';
-import { Text, TouchableOpacity, View, Image } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, Image, Animated, Easing, Dimensions } from 'react-native';
 import { tailwind } from '../utils/tailwind';
-import { Dish } from '../types';
+import type { Dish } from '../types';
 
 interface Props {
   dish: Dish;
   onPress: () => void;
   onToggleSelect: () => void;
   isSelected: boolean;
+  onOpenReadMore?: () => void;
 }
 
-const DishCard = ({ dish, onPress, onToggleSelect, isSelected }: Props) => {
+export default function DishCard({
+  dish,
+  onPress,
+  onToggleSelect,
+  isSelected,
+  onOpenReadMore
+}: Props) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const screenWidth = Dimensions.get('window').width;
+
+  useEffect(() => {
+    Animated.sequence([
+      Animated.timing(scale, {
+        toValue: 0.92,
+        duration: 110,
+        easing: Easing.inOut(Easing.ease),
+        useNativeDriver: true
+      }),
+      Animated.timing(scale, {
+        toValue: 1,
+        duration: 220,
+        easing: Easing.bounce,
+        useNativeDriver: true
+      })
+    ]).start();
+  }, [isSelected, scale]); // ✅ scale is now included
+
   const iconSource =
     dish.type === 'VEG'
       ? require('../../assets/veg.png')
       : require('../../assets/nonveg.png');
 
   return (
-    <View style={tailwind('flex-row items-center p-4 mb-2 bg-gray-100 rounded justify-between')}>
-      {/* Dish Thumbnail */}
-      {dish.image && (
-        <Image
-          source={{ uri: dish.image }}
-          style={{ width: 60, height: 60, borderRadius: 8, marginRight: 12 }}
-        />
-      )}
+    <Animated.View
+      style={[
+        tailwind('bg-white rounded-xl p-3 mb-3'),
+        {
+          transform: [{ scale }],
+          shadowColor: '#000',
+          shadowOpacity: 0.06,
+          shadowRadius: 6,
+          elevation: 2
+        }
+      ]}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        {/* Text + Buttons */}
+        <View style={{ flex: 1, paddingRight: 8 }}>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={onOpenReadMore ?? onPress}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Image
+                source={iconSource}
+                style={{ width: 14, height: 14, marginRight: 8 }}
+              />
+              <Text style={tailwind('text-base font-semibold text-black')}>
+                {dish.name}
+              </Text>
+            </View>
+            <Text
+              style={tailwind('text-sm text-gray-600 mt-2')}
+              numberOfLines={2}
+            >
+              {dish.description}
+            </Text>
+          </TouchableOpacity>
 
-      {/* Dish Info */}
-      <TouchableOpacity onPress={onPress} style={tailwind('flex-1')}>
-        <View style={tailwind('flex-row items-center mb-1')}>
-          <Image source={iconSource} style={{ width: 14, height: 14, marginRight: 6 }} />
-          <Text style={tailwind('text-base font-semibold text-black')}>{dish.name}</Text>
+          <TouchableOpacity onPress={onPress} style={{ marginTop: 10 }}>
+            <Text style={tailwind('text-amber-600 font-medium')}>
+              Ingredient
+            </Text>
+          </TouchableOpacity>
         </View>
-        <Text style={tailwind('text-sm text-gray-600')}>
-          {dish.category.name}
-        </Text>
-      </TouchableOpacity>
 
-      {/* Add/Remove Button */}
-      <TouchableOpacity
-        onPress={onToggleSelect}
-        style={tailwind(
-          `ml-4 px-3 py-1 rounded ${
-            isSelected ? 'bg-red-500' : 'bg-green-500'
-          }`
-        )}
-      >
-        <Text style={tailwind('text-white text-sm')}>
-          {isSelected ? 'Remove' : 'Add'}
-        </Text>
-      </TouchableOpacity>
-    </View>
+        {/* Thumbnail */}
+        <View
+          style={{
+            width: screenWidth > 400 ? 88 : 72, // Responsive image size
+            alignItems: 'flex-end'
+          }}
+        >
+          {dish.image ? (
+            <Image
+              source={{ uri: dish.image }}
+              style={{
+                width: screenWidth > 400 ? 88 : 72,
+                height: screenWidth > 400 ? 88 : 72,
+                borderRadius: 12
+              }}
+            />
+          ) : (
+            <View
+              style={{
+                width: screenWidth > 400 ? 88 : 72,
+                height: screenWidth > 400 ? 88 : 72,
+                borderRadius: 12,
+                backgroundColor: '#eee'
+              }}
+            />
+          )}
+
+          {/* Add/Remove Button */}
+          <View style={{ position: 'absolute', right: -6, bottom: -6 }}>
+            <TouchableOpacity
+              onPress={onToggleSelect}
+              style={tailwind(
+                `px-3 py-1 rounded-full ${
+                  isSelected ? 'bg-red-500' : 'bg-emerald-500'
+                }`
+              )}
+            >
+              <Text style={tailwind('text-white text-sm')}>
+                {isSelected ? 'Remove' : 'Add +'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Animated.View>
   );
-};
-
-export default DishCard;
+}
